@@ -1,0 +1,30 @@
+# doom.bin, built on every push to main and put in the "doom" release (replaced each time):
+#   https://github.com/<owner>/<repo>/releases/download/doom/doom.bin
+name: Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update -q && sudo apt-get install -yq gcc-arm-none-eabi cmake build-essential python3
+      - run: ./build.sh doom.bin
+      - uses: actions/upload-artifact@v4
+        with:
+          name: doom.bin
+          path: doom.bin
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view doom > /dev/null 2>&1 || gh release create doom --title "doom.bin" \
+            --notes "Doom for Electro Notebook's Raspberry Pi Pico with an ILI9341 display. Built from ${GITHUB_SHA::7}."
+          gh release upload doom doom.bin --clobber
